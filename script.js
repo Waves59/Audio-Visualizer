@@ -144,7 +144,7 @@ function frameLooper() {
 	ctx.fillStyle = "rgba(255, 255, 255, " + (intensity * 0.0000125 - 0.4) + ")";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 		
-	rot = rot + intensity * 0.0000001;
+	rot += 0.0000001;
 		
 	react_x = 0;
 	react_y = 0;
@@ -152,66 +152,87 @@ function frameLooper() {
 	intensity = 0;
 				
 	analyser.getByteFrequencyData(fbc_array);
-	
-	for (var i = 0; i < bars; i++) {
+	noise = new SimplexNoise();
+	for (var i = 0; i < (bars); i++) {
 		rads = Math.PI * 2 / bars;
 						
 		bar_x = center_x;
 		bar_y = center_y;
 				
-		bar_height = Math.min(99999, Math.max((fbc_array[i] * 2.5), 0));
-		bar_width = bar_height * 0.02;
+		bar_height = Math.min(999, Math.max((fbc_array[i] * 2.5), 0));
+		bar_width = 1;
 						
-		bar_x_term = center_x + Math.cos(rads * i + rot) * (radius + bar_height);
-		bar_y_term = center_y + Math.sin(rads * i + rot) * (radius + bar_height);
+		bar_x_term = center_x + Math.cos(rads * i + rot) * (radius + bar_height) ;
+		bar_y_term = center_y + Math.sin(rads * i + rot) * (radius + bar_height) ;
 						
-		ctx.save();
-					
-		var lineColor = `rgb(128, ${255 -51 * canvas.width/ rads}, ${60 * canvas.height/rads}`
-						
-		ctx.strokeStyle = lineColor;
-		ctx.lineWidth = bar_width;
-		ctx.beginPath();
-		ctx.moveTo(bar_x, bar_y);
-		ctx.lineTo(bar_x_term, bar_y_term);
-		ctx.stroke();
+		
 					
 		react_x += Math.cos(rads * i + rot) * (radius + bar_height);
 		react_y += Math.sin(rads * i + rot) * (radius + bar_height);
 					
-		intensity += bar_height;
+		intensity += bar_height * 0.1;
+
+		ctx.save();
+					
+		var lineColor = `rgb(128, ${255 / bar_x_term *0.01}, ${255 / bar_y_term *10}`
+		
+		ctx.strokeStyle = lineColor;
+		ctx.lineWidth = bar_width;
+		ctx.beginPath();
+		ctx.moveTo(bar_x, bar_y);
+		ctx.bezierCurveTo(bar_x, bar_y, bar_x, bar_y,bar_x_term , bar_y_term);
+		ctx.lineTo(bar_x_term, bar_y_term);
+		ctx.moveTo(bar_x_term, bar_y_term);
+		ctx.arc(bar_x_term, bar_y_term,  10 + noise.noise2D(bar_x_term, bar_y_term) * 2, 0, Math.PI*2 , false);
+		ctx.fillStyle = `rgb(128, ${255 / bar_x_term *0.01}, ${255 / bar_y_term *10}`
+		ctx.fill()
+		ctx.stroke();
+		ctx.closePath();
+		ctx.restore();
 	}
 				
 	center_x = canvas.width / 2 - (react_x * 0.005);
 	center_y = canvas.height / 2 - (react_y * 0.005);
 				
 	radius_old = radius;
-	radius =  25 + (intensity * 0.002);
+	radius =  10 + (intensity * 0.07);
 	deltarad = radius - radius_old;
 				
-	ctx.fillStyle = "rgb(255, 255, 255)";
-	ctx.beginPath();
-	ctx.arc(center_x, center_y, radius + 2, 0, Math.PI * 2, false);
-	ctx.fill();
 	
 	// shockwave effect			
-	shockwave += 60;
+	shockwave += 20;
 				
-	ctx.lineWidth = 15;
-	ctx.strokeStyle = "rgb(255, 255, 255)";
+	ctx.lineWidth = 200;
+	ctx.save()
 	ctx.beginPath();
-	ctx.arc(center_x, center_y, shockwave + radius, 0, Math.PI * 2, false);
+	ctx.arc(center_x, center_y, shockwave + noise.noise2D(intensity , intensity ), 0, Math.PI * 2, false);
 	ctx.stroke();
-				
-				
-	if (deltarad > 15) {
+	ctx.restore();
+	if (deltarad > 30) {
 		shockwave = 0;
 		
-		ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+		ctx.fillStyle = `rgb(128, 128,128)`
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 		
 		rot = rot + 0.4;
 	}
+
+
+	ctx.fillStyle = "rgb(255, 255, 255)";
+	var h = 100 * (Math.sqrt(3)/2);
+	ctx.strokeStyle = "#0000";
+	ctx.save();
+	ctx.translate(center_x, center_y);
+	ctx.beginPath();
+	ctx.moveTo(0, -h / 2);
+	ctx.lineTo( -100 / 2, h / 2);
+	ctx.lineTo(100 / 2, h / 2);
+	ctx.lineTo(0, -h / 2);
+	ctx.stroke();
+	ctx.fill(); 
+	ctx.closePath();
+	ctx.save();
+
 	
 	if (!isSeeking) {
 		document.getElementById("audioTime").value = (100 / audio.duration) * audio.currentTime;
